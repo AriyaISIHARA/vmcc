@@ -1,4 +1,5 @@
 from logging import getLogger
+import math
 
 from error import VmccError
 from note import Notes, scale_name
@@ -8,7 +9,7 @@ from syllable import breath_text
 logger = getLogger(__name__)
 
 
-MIN_VOWEL_TICK = 5
+REFRAIN_TICK = 44
 MAX_CONSONANT_TICK = 30
 MIN_SUFFIX = 15
 
@@ -25,6 +26,7 @@ class Mora:
             on_tick=None,
             off_tick=None,
             tenseness=None,
+            pitchbend=None,
     ):
         self.attenuation = attenuation or 0
         self.consonant1 = consonant1 or ''
@@ -35,6 +37,7 @@ class Mora:
         self.on_tick = on_tick or 0
         self.off_tick = off_tick or 0
         self.tenseness = tenseness or 0
+        self.pitchbend = pitchbend or ()
 
     @property
     def displaytext(self):
@@ -47,7 +50,7 @@ class Mora:
 
     @property
     def scale_name(self):
-        return scale_name(self.scale)
+        return scale_name(self.scale, pitchbend=self.pitchbend)
 
     @property
     def breath_text(self):
@@ -61,8 +64,9 @@ class Mora:
         return self.tick - (self.on_tick + self.off_tick)
 
     def refrain_pitchbend(self, next_mora):
-        if self.scale != next_mora.scale and self.vowel_tick > MIN_VOWEL_TICK:
-            main_mora = Mora(
+        if self.scale != next_mora.scale:
+            pitchbend = (0,) * math.ceil(self.tick / REFRAIN_TICK)
+            refrained_mora = Mora(
                 attenuation=self.attenuation,
                 consonant1=self.consonant1,
                 consonant2=self.consonant2,
@@ -72,15 +76,10 @@ class Mora:
                 on_tick=self.on_tick,
                 off_tick=self.off_tick,
                 tenseness=self.tenseness,
+                pitchbend=pitchbend,
             )
-            sub_mora = Mora(
-                attenuation=self.attenuation,
-                vowel=self.vowel,
-                scale=self.scale,
-                tick=1,
-                tenseness=self.tenseness,
-            )
-            return main_mora, sub_mora
+            # logger.debug("refrained mora: %s", refrained_mora.displaytext)
+            return (refrained_mora,)
         return (self,)
 
 
@@ -147,14 +146,14 @@ class Morae:
         if self._morae:
             scale = self._morae[-1].scale
 
-        logger.debug(
-            "syllable: %s  suf-tac: %d suf-cons: %s postponed: %s",
-            syllable.displaytext, suffix_tacet, suffix_consonant, self._postponed
-        )
+        # logger.debug(
+        #     "syllable: %s  suf-tac: %d suf-cons: %s postponed: %s",
+        #     syllable.displaytext, suffix_tacet, suffix_consonant, self._postponed
+        # )
         for idx, note in enumerate(unified_notes):
             first = idx == 0
             last = idx + 1 == len(unified_notes)
-            logger.debug("unified_notes#%d: %s", idx, note.displaytext)
+            # logger.debug("unified_notes#%d: %s", idx, note.displaytext)
             consonant1 = None
             consonant2 = None
             vowel = syllable.vowel
@@ -187,7 +186,7 @@ class Morae:
                 consonant1=consonant1, consonant2=consonant2, vowel=vowel,
                 scale=scale, tick=tick, on_tick=on_tick, off_tick=off_tick
             )
-            logger.debug("mora: %s", mora.displaytext)
+            # logger.debug("mora: %s", mora.displaytext)
             self._morae.append(mora)
             if suffix_length:
                 self._postponed = suffix_length, syllable.suffix
@@ -195,7 +194,7 @@ class Morae:
             if self._postponed:
                 self._proceed_single_postponed()
             self._postponed = suffix_tacet, None
-            logger.debug("postpone set: %s", self._postponed)
+            # logger.debug("postpone set: %s", self._postponed)
 
     def _refrain_pitchbend(self):
         morae = []

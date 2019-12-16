@@ -23,10 +23,11 @@ _SCALE_NAMES = [
 ]
 
 
-def scale_name(scale_key):
+def scale_name(scale_key, pitchbend=()):
     octave = scale_key // 12
     name = _SCALE_NAMES[scale_key % 12]
-    return '%s%d' % (name, octave)
+    pitchbend = ''.join(['_%d' % bend for bend in pitchbend])
+    return '%s%d%s' % (name, octave, pitchbend)
 
 
 class Note:
