@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 
+from mora import Morae
 from note import Note
 from syllable import Syllable
 
@@ -10,7 +11,7 @@ from syllable import Syllable
 logger = logging.getLogger(__name__)
 
 
-def _tempo_to_scale_unit(tempo):
+def _tempo_to_tick_unit(tempo):
     return int(440 * 60 / tempo + .5)
 
 
@@ -19,21 +20,23 @@ class Environment:
             self, *,
             lowest_key=0,  # C0
             highest_key=127,  # G10
-            scale_unit=0,
+            tick_unit=0,
             tempo=0,
             octave=4,
             transpose=0,
+            maximal_suffix=110,
     ):
-        self.settables = ('scale_unit', 'tempo', 'octave', 'transpose')
+        self.settables = ('tick_unit', 'tempo', 'octave', 'transpose', 'maximal_suffix')
         self.lowest_key = lowest_key
         self.highest_key = highest_key
-        if scale_unit:
+        if tick_unit:
             assert not tempo
-            self.scale_unit = scale_unit
+            self.tick_unit = tick_unit
         else:
-            self.scale_unit = _tempo_to_scale_unit(tempo or 120)
+            self.tick_unit = _tempo_to_tick_unit(tempo or 120)
         self.octave = octave
         self.transpose = transpose
+        self.maximal_suffix = maximal_suffix
         self.lyrics = None
         self.melody = None
         self.lineno = 0
@@ -53,10 +56,10 @@ class Environment:
             paramstr = items[2]
             assert paramstr.isnumeric()
             param = int(paramstr)
-            logger.info("L%d: %s = %d", self.lineno, pragma, param)
+            # logger.info("L%d: %s = %d", self.lineno, pragma, param)
             if pragma == 'tempo':
-                pragma = 'scale_unit'
-                param = _tempo_to_scale_unit(param)
+                pragma = 'tick_unit'
+                param = _tempo_to_tick_unit(param)
             setattr(self, pragma, param)
         elif self.lyrics:
             self._feed_melody(line)
@@ -71,24 +74,30 @@ class Environment:
             syllable = Syllable.parse(item, self.lineno, chars)
             lyrics.append(syllable)
         self.lyrics = lyrics
-        
+
     def _feed_melody(self, line):
         self.melody = Note.parse_melody(self, line)
-        for note in self.melody:
-            logger.info(note.displaytext)
+        # for note in self.melody:
+        #     logger.info(note.displaytext)
 
     def _merge(self):
         assert self.lyrics and self.melody
-        # TBA
+        self.morae += Morae.merge_to_morae(self)
         self.lyrics = None
         self.melody = None
-        
+
+    def write_morae(self, file=None):
+        for mora in self.morae:
+            # logger.info(mora.displaytext)
+            mora.write(file)
+
 
 def _main(fin):
     env = Environment()
     for line in fin:
         env.feed_line(line)
-        
+    env.write_morae()
+
 
 if __name__ == '__main__':
     logging.basicConfig(

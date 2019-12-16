@@ -15,6 +15,18 @@ _REGEX_NOTE = re.compile(''.join([
     r'|(?P<lpar>\()|(?P<rpar>\)(?P<rpar_scale>[0-9]*))',
     r')\s*',
 ]))
+_KEY_MAP = {
+    'c': 0, 'd': 2, 'e': 4, 'f': 5, 'g': 7, 'a': 9, 'b': 10, 'h': 11,
+}
+_SCALE_NAMES = [
+    'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
+]
+
+
+def scale_name(scale_key):
+    octave = scale_key // 12
+    name = _SCALE_NAMES[scale_key % 12]
+    return '%s%d' % (name, octave)
 
 
 class Note:
@@ -27,6 +39,43 @@ class Note:
     @property
     def displaytext(self):
         return f"<{self.pos}:{self.length}@{self.signature}{self.octave}>"
+
+    @property
+    def is_normal(self):
+        return self.octave is not None
+
+    @property
+    def is_repeat(self):
+        return self.signature == '-'
+
+    @property
+    def is_tacet(self):
+        return self.signature == '.'
+
+    def __add__(self, other):
+        unifiable = False
+        if self.is_normal and other.is_repeat:
+            unifiable = True
+        elif self.is_tacet and other.is_tacet:
+            unifiable = True
+        if not unifiable:
+            return None
+        return Note(self.signature, self.octave, self.length + other.length, self.pos)
+
+    def get_key(self, env, default=None):
+        if not self.is_normal:
+            return default
+        signature = self.signature
+        key = self.octave * 12 + _KEY_MAP[signature[0]]
+        if signature.endswith('is'):
+            key += 1
+        elif signature.endswith('s'):
+            key -= 1
+        if key < env.lowest_key:
+            return env.lowest_key
+        if key > env.highest_key:
+            return env.highest_key
+        return key
 
     @classmethod
     def parse_melody(cls, env, text, lineno=None, chars=1):
@@ -47,7 +96,7 @@ class Note:
             note_pos = pos + chars
             pos += m.end()
             if par is None:
-                scale = env.scale_unit
+                scale = env.tick_unit
                 q = melody
             else:
                 scale = None
@@ -78,7 +127,7 @@ class Note:
                     numerator = int(rpar_scale) or 1
                 else:
                     numerator = 1
-                resource = numerator * env.scale_unit
+                resource = numerator * env.tick_unit
                 rest = len(par)
                 for note in par:
                     if rest == 1:
@@ -95,3 +144,16 @@ class Note:
                 assert octaveset
                 env.octave = int(octaveset[2:])
         return melody
+
+
+class Notes:
+    @classmethod
+    def unify(cls, notes):
+        unified_notes = deque([notes[0]])
+        for note in notes[1:]:
+            unified = unified_notes[-1] + note
+            if unified:
+                unified_notes[-1] = unified
+            else:
+                unified_notes.append(note)
+        return unified_notes
