@@ -40,7 +40,7 @@ class Environment:
         self.lyrics = None
         self.melody = None
         self.lineno = 0
-        self.morae = []
+        self.morae = Morae(self)
 
     def feed_line(self, line):
         self.lineno += 1
@@ -82,12 +82,13 @@ class Environment:
 
     def _merge(self):
         assert self.lyrics and self.melody
-        self.morae += Morae.merge_to_morae(self)
+        self.morae.merge()
         self.lyrics = None
         self.melody = None
 
     def write_morae(self, file=None):
-        for mora in self.morae:
+        morae = self.morae.get_morae()
+        for mora in morae:
             # logger.info(mora.displaytext)
             mora.write(file)
 

@@ -147,11 +147,14 @@ class Morae:
         if self._morae:
             scale = self._morae[-1].scale
 
-        # logger.debug("syllable: %s", syllable.displaytext)
+        logger.debug(
+            "syllable: %s  suf-tac: %d suf-cons: %s postponed: %s",
+            syllable.displaytext, suffix_tacet, suffix_consonant, self._postponed
+        )
         for idx, note in enumerate(unified_notes):
             first = idx == 0
             last = idx + 1 == len(unified_notes)
-            # logger.debug("unified_notes#%d: %s", idx, note.displaytext)
+            logger.debug("unified_notes#%d: %s", idx, note.displaytext)
             consonant1 = None
             consonant2 = None
             vowel = syllable.vowel
@@ -184,6 +187,7 @@ class Morae:
                 consonant1=consonant1, consonant2=consonant2, vowel=vowel,
                 scale=scale, tick=tick, on_tick=on_tick, off_tick=off_tick
             )
+            logger.debug("mora: %s", mora.displaytext)
             self._morae.append(mora)
             if suffix_length:
                 self._postponed = suffix_length, syllable.suffix
@@ -191,6 +195,7 @@ class Morae:
             if self._postponed:
                 self._proceed_single_postponed()
             self._postponed = suffix_tacet, None
+            logger.debug("postpone set: %s", self._postponed)
 
     def _refrain_pitchbend(self):
         morae = []
@@ -211,17 +216,15 @@ class Morae:
         self._morae.append(mora)
         self._postponed = None
 
-    @classmethod
-    def merge_to_morae(cls, env):
-        morae = cls(env)
+    def merge(self):
+        env = self._env
         lyrics = env.lyrics
         melody = env.melody
         while melody:
             note = melody.popleft()
             while lyrics and lyrics[0].pos <= note.pos:
-                morae.feed_syllable(lyrics.popleft())
-            morae.feed_note(note)
+                self.feed_syllable(lyrics.popleft())
+            self.feed_note(note)
         if lyrics:
             syllable = lyrics[0]
             raise VmccError(f"no note for syllable '{syllable}' @ L{env.lineno}:{syllable.pos}")
-        return morae.get_morae()
