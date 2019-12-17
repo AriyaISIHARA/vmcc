@@ -106,7 +106,7 @@ class Morae:
             if last_note.is_tacet and not note.is_tacet:
                 raise VmccError(
                     "tacet should be placed at the end of a syllable " +
-                    f"@ L{self._env.lineno}:{last_note.pos}"
+                    f"@ L{self._env.lineno}:{last_note.pos}:'{last_note.displaytext}{note.displaytext}'"
                 )
         self._current_notes.append(note)
 

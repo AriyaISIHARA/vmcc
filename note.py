@@ -10,8 +10,8 @@ logger = getLogger(__name__)
 
 _REGEX_NOTE = re.compile(''.join([
     r'(?:'
-    r'(?P<signature>[cdfg](?:[ie]s)?|[eah](?:is)?|[ea]s|b(?P<octave>[0-9]*))',
-    r'|(?P<octaveset>o[0-9]+)|(?P<octaveinc><)|(?P<octavedec>>)|(?P<repeat>-)|(?P<tacet>.)',
+    r'(?P<signature>[cdfg](?:[ie]s)?|[ea](?:i?s)?|his|b)(?P<octave>[0-9]*)',
+    r'|(?P<octaveset>o[0-9]+)|(?P<octaveinc><)|(?P<octavedec>>)|(?P<repeat>-)|(?P<tacet>\.)',
     r'|(?P<lpar>\()|(?P<rpar>\)(?P<rpar_scale>[0-9]*))',
     r')\s*',
 ]))
@@ -92,7 +92,9 @@ class Note:
             m = _REGEX_NOTE.match(item)
             if not m:
                 raise VmccError(f"L{lineno}:{pos + chars}:'{item}' unrecognizable")
+            # logger.debug("note-parse: %s  q: %s  par: %s", m.group(), [n.displaytext for n in melody], par and [n.displaytext for n in par])
             d = m.groupdict()
+            # logger.debug("d: %s", d)
             signature = d['signature']
             note_pos = pos + chars
             pos += m.end()
@@ -144,6 +146,8 @@ class Note:
                 octaveset = d['octaveset']
                 assert octaveset
                 env.octave = int(octaveset[2:])
+        assert par is None
+        # logger.debug(f"notes: {[n.displaytext for n in melody]}")
         return melody
 
 
