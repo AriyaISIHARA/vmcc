@@ -10,7 +10,7 @@ logger = getLogger(__name__)
 
 _REGEX_NOTE = re.compile(''.join([
     r'(?:'
-    r'(?P<signature>[cdfg](?:[ie]s)?|[ea](?:i?s)?|his|b)(?P<octave>[0-9]*)',
+    r'(?P<signature>[cdfg](?:[ie]s)?|[ea](?:i?s)?|h(?:is)?|b)(?P<octave>[0-9]*)',
     r'|(?P<octaveset>o[0-9]+)|(?P<octaveinc><)|(?P<octavedec>>)|(?P<repeat>-)|(?P<tacet>\.)',
     r'|(?P<lpar>\()|(?P<rpar>\)(?P<rpar_scale>[0-9]*))',
     r')\s*',
