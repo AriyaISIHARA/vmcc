@@ -54,7 +54,7 @@ class Environment:
             pragma = items[1]
             assert pragma in self.settables
             paramstr = items[2]
-            assert paramstr.isnumeric()
+            # assert paramstr.isnumeric()
             param = int(paramstr)
             # logger.info("L%d: %s = %d", self.lineno, pragma, param)
             if pragma == 'tempo':

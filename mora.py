@@ -72,7 +72,7 @@ class Mora:
                 consonant2=self.consonant2,
                 vowel=self.vowel,
                 scale=self.scale,
-                tick=self.tick - 1,
+                tick=self.tick,
                 on_tick=self.on_tick,
                 off_tick=self.off_tick,
                 tenseness=self.tenseness,
